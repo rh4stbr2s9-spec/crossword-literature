@@ -1,0 +1,1037 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Кроссворд: Литература начала XX века</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <style>
+    body {
+      font-family: Georgia, 'Times New Roman', serif;
+      background-color: #E2E8F0;
+      color: #0F172A;
+    }
+    .sans-font {
+      font-family: Arial, Helvetica, sans-serif;
+    }
+    /* Оформление печатных листов */
+    .page-sheet {
+      background-color: #FAF8F5;
+      box-shadow: 0 10px 30px rgba(15, 23, 42, 0.15);
+      border: 1px solid #CBD5E1;
+      max-width: 1050px;
+      margin: 0 auto 2.5rem auto;
+      position: relative;
+    }
+    /* Сетка кроссворда */
+    .cw-grid {
+      display: grid;
+      grid-template-columns: repeat(19, minmax(0, 1fr));
+      gap: 2px;
+      background-color: transparent;
+      max-width: 680px;
+      margin: 0 auto;
+    }
+    .cw-cell {
+      aspect-ratio: 1 / 1;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      user-select: none;
+    }
+    .cw-cell.empty {
+      background-color: transparent;
+    }
+    .cw-cell.active {
+      background-color: #FFFFFF;
+      border: 1.5px solid #1E293B;
+      border-radius: 3px;
+      box-shadow: inset 0 1px 2px rgba(0,0,0,0.06);
+      transition: all 0.15s ease;
+    }
+    .cw-cell.active:focus-within {
+      background-color: #FEF3C7;
+      border-color: #D97706;
+      box-shadow: 0 0 0 2px rgba(217, 119, 6, 0.3);
+      z-index: 10;
+    }
+    .cw-cell.correct-cell {
+      background-color: #DCFCE7 !important;
+      border-color: #15803D !important;
+    }
+    .cw-cell.error-cell {
+      background-color: #FEE2E2 !important;
+      border-color: #B91C1C !important;
+    }
+    .cw-num {
+      position: absolute;
+      top: 1px;
+      left: 2px;
+      font-size: 8.5px;
+      font-weight: 700;
+      color: #991B1B;
+      line-height: 1;
+      font-family: Arial, Helvetica, sans-serif;
+      pointer-events: none;
+      z-index: 5;
+    }
+    .cw-input {
+      width: 100%;
+      height: 100%;
+      text-align: center;
+      font-family: Arial, Helvetica, sans-serif;
+      font-size: 16px;
+      font-weight: 700;
+      text-transform: uppercase;
+      background: transparent;
+      border: none;
+      outline: none;
+      color: #0F172A;
+      padding-top: 4px;
+      cursor: pointer;
+    }
+    .cw-answer-char {
+      font-family: Arial, Helvetica, sans-serif;
+      font-size: 16px;
+      font-weight: 700;
+      text-transform: uppercase;
+      color: #0F172A;
+      padding-top: 4px;
+    }
+
+    /* Настройки для печати на 2 отдельных листах */
+    @media print {
+      body {
+        background-color: #FFFFFF;
+      }
+      .no-print {
+        display: none !important;
+      }
+      .page-sheet {
+        box-shadow: none !important;
+        border: none !important;
+        margin: 0 !important;
+        padding: 10mm !important;
+        max-width: 100% !important;
+        width: 100% !important;
+        background-color: #FFFFFF !important;
+      }
+      .page-break {
+        page-break-before: always;
+        break-before: page;
+      }
+      #page-1, #page-2 {
+        display: block !important;
+      }
+      .cw-grid {
+        max-width: 520px;
+      }
+    }
+  </style>
+</head>
+<body class="py-6 px-3 sm:px-6">
+
+  <!-- Панель управления (скрывается при печати) -->
+  <div class="no-print max-w-[1050px] mx-auto mb-6 bg-slate-900 text-slate-100 rounded-xl p-4 shadow-lg flex flex-wrap items-center justify-between gap-4 border border-slate-700">
+    <div class="flex items-center gap-3">
+      <div class="w-10 h-10 rounded-lg bg-amber-600 flex items-center justify-center text-white font-bold text-lg">
+        <i class="fa-solid fa-feather-pointed"></i>
+      </div>
+      <div>
+        <h1 class="text-base sm:text-lg font-bold tracking-wide">Творческий проект по литературе</h1>
+        <p class="text-xs text-slate-300 sans-font">Кроссворд можно разгадывать прямо на экране или распечатать (2 страницы: задания + ответы)</p>
+      </div>
+    </div>
+
+    <!-- Переключатель режимов и кнопки действий -->
+    <div class="flex flex-wrap items-center gap-2 sans-font text-sm">
+      <div class="bg-slate-800 p-1 rounded-lg flex items-center border border-slate-700">
+        <button onclick="setViewMode('both')" id="btn-both" class="px-3 py-1.5 rounded-md font-medium bg-amber-600 text-white transition">
+          Обе страницы
+        </button>
+        <button onclick="setViewMode('page1')" id="btn-page1" class="px-3 py-1.5 rounded-md font-medium text-slate-300 hover:text-white transition">
+          Стр. 1: Задания
+        </button>
+        <button onclick="setViewMode('page2')" id="btn-page2" class="px-3 py-1.5 rounded-md font-medium text-slate-300 hover:text-white transition">
+          Стр. 2: Ответы
+        </button>
+      </div>
+
+      <button onclick="checkUserAnswers()" class="px-3.5 py-2 rounded-lg bg-emerald-700 hover:bg-emerald-600 text-white font-medium transition flex items-center gap-1.5 shadow">
+        <i class="fa-solid fa-check-double"></i> Проверить
+      </button>
+      <button onclick="clearUserGrid()" class="px-3.5 py-2 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-200 font-medium transition flex items-center gap-1.5">
+        <i class="fa-solid fa-eraser"></i> Очистить
+      </button>
+      <button onclick="window.print()" class="px-3.5 py-2 rounded-lg bg-red-800 hover:bg-red-700 text-white font-medium transition flex items-center gap-1.5 shadow">
+        <i class="fa-solid fa-print"></i> Печать (2 листа)
+      </button>
+    </div>
+  </div>
+
+  <!-- Статусное сообщение при проверке -->
+  <div id="status-banner" class="no-print hidden max-w-[1050px] mx-auto mb-4 p-3.5 rounded-xl border text-sm sans-font font-medium flex items-center justify-between">
+    <span id="status-text"></span>
+    <button onclick="document.getElementById('status-banner').classList.add('hidden')" class="text-current opacity-75 hover:opacity-100">
+      <i class="fa-solid fa-xmark"></i>
+    </button>
+  </div>
+
+  <!-- ========================================================= -->
+  <!-- СТРАНИЦА 1: КРОССВОРД И ЗАДАНИЯ                           -->
+  <!-- ========================================================= -->
+  <section id="page-1" class="page-sheet rounded-xl p-6 sm:p-10">
+    <!-- Шапка листа -->
+    <div class="border-b-2 border-red-900 pb-4 mb-6 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+      <div>
+        <p class="text-xs font-bold uppercase tracking-widest text-red-800 sans-font mb-1">
+          Проектная работа по литературе • Серебряный век и рубеж эпох
+        </p>
+        <h2 class="text-2xl sm:text-4xl font-bold text-slate-900">
+          Литература начала XX века: направления и творцы
+        </h2>
+        <p class="text-sm text-slate-600 mt-1 italic">
+          Литературные течения эпохи, творчество А. А. Блока, И. А. Бунина и М. Горького
+        </p>
+      </div>
+      <div class="sans-font text-xs text-slate-600 border border-slate-300 bg-white/80 rounded-lg px-3.5 py-2 shrink-0">
+        <div class="mb-1"><span class="font-bold text-slate-800">Ученик(ца):</span> _______________________</div>
+        <div><span class="font-bold text-slate-800">Класс / Дата:</span> _____________________</div>
+      </div>
+    </div>
+
+    <!-- Сетка кроссворда (пустая / интерактивная) -->
+    <div class="mb-8">
+      <div id="crossword-blank" class="cw-grid"></div>
+      <p class="no-print text-center text-xs text-slate-500 sans-font mt-2">
+        <i class="fa-regular fa-keyboard mr-1"></i> Нажмите на любую клетку, чтобы вписать букву с клавиатуры, или распечатайте лист для заполнения ручкой.
+      </p>
+    </div>
+
+    <!-- Списки вопросов в 2 колонки -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8 bg-amber-50/50 border border-amber-900/15 rounded-xl p-5 sm:p-6">
+      <!-- По горизонтали -->
+      <div>
+        <h3 class="text-lg font-bold text-red-900 border-b border-red-900/20 pb-2 mb-3 flex items-center gap-2">
+          <i class="fa-solid fa-arrows-left-right text-amber-600 text-sm"></i> По горизонтали
+        </h3>
+        <ol class="space-y-2.5 text-sm leading-relaxed text-slate-800 sans-font" id="clues-across"></ol>
+      </div>
+
+      <!-- По вертикали -->
+      <div>
+        <h3 class="text-lg font-bold text-red-900 border-b border-red-900/20 pb-2 mb-3 flex items-center gap-2">
+          <i class="fa-solid fa-arrows-up-down text-amber-600 text-sm"></i> По вертикали
+        </h3>
+        <ol class="space-y-2.5 text-sm leading-relaxed text-slate-800 sans-font" id="clues-down"></ol>
+      </div>
+    </div>
+
+    <!-- Нижний колонтитул страницы 1 -->
+    <div class="mt-6 pt-3 border-t border-slate-200 flex justify-between items-center text-xs text-slate-400 sans-font">
+      <span>Тема: Литературные направления, А. Блок, И. Бунин, М. Горький</span>
+      <span>Страница 1 из 2 (Бланк заданий)</span>
+    </div>
+  </section>
+
+  <!-- ========================================================= -->
+  <!-- СТРАНИЦА 2: РЕШЕНИЯ И ПОЯСНЕНИЯ                           -->
+  <!-- ========================================================= -->
+  <section id="page-2" class="page-sheet page-break rounded-xl p-6 sm:p-10">
+    <!-- Шапка листа ответов -->
+    <div class="border-b-2 border-slate-800 pb-4 mb-6 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+      <div>
+        <p class="text-xs font-bold uppercase tracking-widest text-amber-700 sans-font mb-1">
+          Ключи и справочные материалы к проекту
+        </p>
+        <h2 class="text-2xl sm:text-4xl font-bold text-slate-900">
+          Литература начала XX века — Ответы и решения
+        </h2>
+        <p class="text-sm text-slate-600 mt-1 italic">
+          Заполненная матрица кроссворда и проверочный лист с историко-литературными комментариями
+        </p>
+      </div>
+      <div class="sans-font text-xs font-bold uppercase tracking-wider bg-slate-900 text-amber-400 px-3.5 py-2 rounded-lg shrink-0">
+        Лист проверки (15 слов)
+      </div>
+    </div>
+
+    <!-- Сетка кроссворда (заполненная) -->
+    <div class="mb-8">
+      <div id="crossword-solved" class="cw-grid"></div>
+    </div>
+
+    <!-- Сводная таблица ответов по тематическим блокам -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 bg-white border border-slate-200 rounded-xl p-5 sm:p-6 shadow-sm">
+      <div>
+        <h3 class="text-base font-bold text-slate-900 border-b border-slate-200 pb-2 mb-3 flex items-center gap-2">
+          <i class="fa-solid fa-check text-emerald-700"></i> Ответы по горизонтали
+        </h3>
+        <ul class="space-y-2 text-xs sm:text-sm sans-font text-slate-700" id="answers-across"></ul>
+      </div>
+
+      <div>
+        <h3 class="text-base font-bold text-slate-900 border-b border-slate-200 pb-2 mb-3 flex items-center gap-2">
+          <i class="fa-solid fa-check text-emerald-700"></i> Ответы по вертикали
+        </h3>
+        <ul class="space-y-2 text-xs sm:text-sm sans-font text-slate-700" id="answers-down"></ul>
+      </div>
+    </div>
+
+    <!-- Краткая памятка по структуре темы -->
+    <div class="mt-6 bg-slate-900 text-slate-100 rounded-xl p-4 sm:p-5 grid grid-cols-1 sm:grid-cols-4 gap-4 sans-font text-xs">
+      <div>
+        <span class="text-amber-400 font-bold uppercase block mb-1">I. Направления (5 слов)</span>
+        Модернизм, Реализм, Символизм, Акмеизм, Футуризм
+      </div>
+      <div>
+        <span class="text-amber-400 font-bold uppercase block mb-1">II. А. А. Блок (3 слова)</span>
+        Блок, «Двенадцать», «Незнакомка»
+      </div>
+      <div>
+        <span class="text-amber-400 font-bold uppercase block mb-1">III. И. А. Бунин (3 слова)</span>
+        Бунин, «Деревня», «Арсеньев»
+      </div>
+      <div>
+        <span class="text-amber-400 font-bold uppercase block mb-1">IV. М. Горький (4 слова)</span>
+        Пешков, Данко, Сатин, Актер
+      </div>
+    </div>
+
+    <!-- Нижний колонтитул страницы 2 -->
+    <div class="mt-6 pt-3 border-t border-slate-200 flex justify-between items-center text-xs text-slate-400 sans-font">
+      <span>Тема: Литературные направления, А. Блок, И. Бунин, М. Горький</span>
+      <span>Страница 2 из 2 (Лист решений)</span>
+    </div>
+  </section>
+
+  <script>
+    // Строго выверенный и математически проверенный список из 15 слов:
+    // 1. Все 15 слов образуют ЕДИНУЮ связную сеть (граф без оторванных кусков).
+    // 2. Все пересечения на 100% совпадают по буквам.
+    // 3. Никакие параллельные или соседние слова НЕ соприкасаются друг с другом
+    //    (нет ложных двухбуквенных или слипшихся комбинаций вроде "МОДЕРНИЗМК").
+    const WORDS = [
+      {
+        num: 1,
+        dir: 'down',
+        word: 'АРСЕНЬЕВ',
+        row: 0,
+        col: 3,
+        category: 'И. Бунин',
+        clue: 'Фамилия главного героя автобиографического романа И. А. Бунина, принесшего писателю Нобелевскую премию.',
+        note: 'Роман «Жизнь Арсеньева» (1927–1933); пересекается с «СИМВОЛИЗМ» (буква С) и «НЕЗНАКОМКА» (буква Е).'
+      },
+      {
+        num: 2,
+        dir: 'down',
+        word: 'БЛОК',
+        row: 1,
+        col: 8,
+        category: 'А. Блок',
+        clue: 'Крупнейший поэт-символист, «трагический тенор эпохи», автор цикла «Стихи о Прекрасной Даме».',
+        note: 'Александр Александрович Блок (1880–1921); пересекается со словом «СИМВОЛИЗМ» (буква Л).'
+      },
+      {
+        num: 3,
+        dir: 'across',
+        word: 'СИМВОЛИЗМ',
+        row: 2,
+        col: 3,
+        category: 'Направления',
+        clue: 'Первое и крупнейшее течение русского модернизма, основанное на идее двоемирия, музыкальности и тайного знака.',
+        note: 'Представители: В. Брюсов, К. Бальмонт, А. Блок, А. Белый.'
+      },
+      {
+        num: 4,
+        dir: 'down',
+        word: 'БУНИН',
+        row: 4,
+        col: 15,
+        category: 'И. Бунин',
+        clue: 'Первый русский лауреат Нобелевской премии по литературе (1933), мастер «парчовой прозы», автор цикла «Тёмные аллеи».',
+        note: 'Иван Алексеевич Бунин (1870–1953); пересекается со словом «ДАНКО» (буква Н).'
+      },
+      {
+        num: 5,
+        dir: 'across',
+        word: 'НЕЗНАКОМКА',
+        row: 6,
+        col: 2,
+        category: 'А. Блок',
+        clue: 'Знаменитое стихотворение А. Блока («И каждый вечер, в час назначенный...»), где прекрасный идеал сталкивается с пошлостью пригорода.',
+        note: 'Написано в 1906 г.; связывает «АРСЕНЬЕВ» (Е), «МОДЕРНИЗМ» (М) и «АКМЕИЗМ» (А).'
+      },
+      {
+        num: 6,
+        dir: 'down',
+        word: 'МОДЕРНИЗМ',
+        row: 6,
+        col: 9,
+        category: 'Направления',
+        clue: 'Общее название новых неклассических направлений в искусстве начала XX века, искавших новые формы и провозглашавших свободу творца.',
+        note: 'Связывает «НЕЗНАКОМКА» (М), «ДЕРЕВНЯ» (Е) и «РЕАЛИЗМ» (И).'
+      },
+      {
+        num: 7,
+        dir: 'down',
+        word: 'АКМЕИЗМ',
+        row: 6,
+        col: 11,
+        category: 'Направления',
+        clue: 'Поэтическое течение («Цех поэтов»: Н. Гумилёв, А. Ахматова, О. Мандельштам), вернувшее слову предметную точность и земную красоту.',
+        note: 'Связывает «НЕЗНАКОМКА» (А) и «ДЕРЕВНЯ» (Е).'
+      },
+      {
+        num: 8,
+        dir: 'across',
+        word: 'ДАНКО',
+        row: 6,
+        col: 13,
+        category: 'М. Горький',
+        clue: 'Герой рассказа М. Горького «Старуха Изергиль», осветивший людям путь из тёмного леса своим горящим сердцем.',
+        note: 'Символ героического самопожертвования; начинается из одной клетки с «ДВЕНАДЦАТЬ» (буква Д).'
+      },
+      {
+        num: 8,
+        dir: 'down',
+        word: 'ДВЕНАДЦАТЬ',
+        row: 6,
+        col: 13,
+        category: 'А. Блок',
+        clue: 'Поэма А. А. Блока (январь 1918), в финале которой впереди красногвардейского патруля в белом венчике из роз идет Иисус Христос.',
+        note: 'Связывает «ДАНКО» (Д), «ДЕРЕВНЯ» (Н) и «САТИН» (Т).'
+      },
+      {
+        num: 9,
+        dir: 'across',
+        word: 'ДЕРЕВНЯ',
+        row: 9,
+        col: 8,
+        category: 'И. Бунин',
+        clue: 'Повесть И. А. Бунина (1910), в которой писатель дал суровый и беспощадно правдивый портрет русского крестьянства накануне потрясений.',
+        note: 'Связывает воедино три вертикали: «МОДЕРНИЗМ» (Е), «АКМЕИЗМ» (Е) и «ДВЕНАДЦАТЬ» (Н).'
+      },
+      {
+        num: 10,
+        dir: 'down',
+        word: 'АКТЕР',
+        row: 10,
+        col: 6,
+        category: 'М. Горький',
+        clue: 'Трагический персонаж пьесы М. Горького «На дне» (бывший артист Сверчков-Заволжский), не выдержавший крушения мечты о «лечебнице».',
+        note: 'Связывает «РЕАЛИЗМ» (буква Т) и «ПЕШКОВ» (буква Е).'
+      },
+      {
+        num: 11,
+        dir: 'across',
+        word: 'РЕАЛИЗМ',
+        row: 12,
+        col: 3,
+        category: 'Направления',
+        clue: 'Классическое направление, которое в начале XX века бережно развивали писатели объединения «Знание» (И. Бунин, М. Горький, А. Куприн).',
+        note: 'Пересекается с «ФУТУРИЗМ» (Р), «АКТЕР» (А) и «МОДЕРНИЗМ» (И).'
+      },
+      {
+        num: 12,
+        dir: 'across',
+        word: 'ПЕШКОВ',
+        row: 13,
+        col: 0,
+        category: 'М. Горький',
+        clue: 'Настоящая фамилия Максима Горького, автора автобиографической трилогии «Детство», «В людях», «Мои университеты».',
+        note: 'Алексей Максимович Пешков (1868–1936); пересекается с «ФУТУРИЗМ» (буква Ш).'
+      },
+      {
+        num: 13,
+        dir: 'down',
+        word: 'ФУТУРИЗМ',
+        row: 11,
+        col: 2,
+        category: 'Направления',
+        clue: 'Авангардное течение Серебряного века, авторы манифеста «Пощёчина общественному вкусу», призывавшие «бросить классиков с Парохода Современности».',
+        note: 'Представители: В. Маяковский, В. Хлебников; пересекается с «ПЕШКОВ» (буква У).'
+      },
+      {
+        num: 14,
+        dir: 'across',
+        word: 'САТИН',
+        row: 14,
+        col: 11,
+        category: 'М. Горький',
+        clue: 'Герой философской драмы М. Горького «На дне», произносящий знаменитый монолог: «Человек — это звучит гордо!».',
+        note: 'Пересекается со словом «ДВЕНАДЦАТЬ» по букве «Т».'
+      }
+    ];
+
+    // Корректируем точные координаты нижней левой связки (АКТЕР, РЕАЛИЗМ, ПЕШКОВ, ФУТУРИЗМ),
+    // чтобы между всеми параллельными и соседними словами был минимум 1 пустой ряд/столбец:
+    // - МОДЕРНИЗМ идет по col=9 (ряды 6..14, буква И на row=12, col=9)
+    // - АКМЕИЗМ идет по col=11 (ряды 6..12, заканчивается на row=12, col=11)
+    // Поэтому РЕАЛИЗМ (7 букв: Р-Е-А-Л-И-З-М) стоит на row=12, col=5..11? Нет, тогда col=11 совпадет с М!
+    // А в АКМЕИЗМ на row=12, col=11 тоже буква М! Значит РЕАЛИЗМ и АКМЕИЗМ закончатся в одной клетке на общую букву М!
+    // Проверим:
+    // РЕАЛИЗМ: row=12, col=5..11:
+    //   col=5: Р
+    //   col=6: Е
+    //   col=7: А
+    //   col=8: Л
+    //   col=9: И (пересекает МОДЕРНИЗМ на row=12, col=9 -> И!)
+    //   col=10: З
+    //   col=11: М (пересекает АКМЕИЗМ на row=12, col=11 -> М!)
+    // Посмотрим, есть ли тогда примыкания у РЕАЛИЗМ (row=12, col=5..11):
+    //   - Сверху (row=11): в col=9 буква Н (из МОДЕРНИЗМ), в col=11 буква З (из АКМЕИЗМ). В col=5,6,7,8,10 пусто!
+    //   - Снизу (row=13): в col=9 буква З (из МОДЕРНИЗМ). В col=11 пусто (АКМЕИЗМ закончился на row=12, а САТИН начинается на row=14, col=11 — между ними row=13 пустая!).
+    // Теперь подключим АКТЕР, ПЕШКОВ и ФУТУРИЗМ слева без единого касания с МОДЕРНИЗМ (col=9):
+    //   - АКТЕР (верт., 5 букв): поставим на col=7, row=12..16 (А на row=12, col=7 — пересекает РЕАЛИЗМ!).
+    //     Тогда буквы АКТЕР: row=12(А), row=13(К), row=14(Т), row=15(Е), row=16(Р).
+    //     Расстояние до МОДЕРНИЗМ (col=9) — целый пустой столбец col=8!
+    //   - ПЕШКОВ (гор., 6 букв): поставим на row=15, col=6..11? Нет, на row=15 в col=9 пусто (МОДЕРНИЗМ закончился на row=14!), НО в col=9 на row=14 буква М, и если ПЕШКОВ пройдет по row=15, col=9, то сверху будет М!
+    //     Поэтому проведем ПЕШКОВ влево, чтобы он заканчивался ДО col=8!
+    //     Для этого поменяем местами: от РЕАЛИЗМ (row=12, col=5 — буква Р) пустим ФУТУРИЗМ вертикально:
+    //     ФУТУРИЗМ (8 букв): col=5, row=8..15:
+    //       row=8: Ф, row=9: У, row=10: Т, row=11: У, row=12: Р (пересекает РЕАЛИЗМ!), row=13: И, row=14: З, row=15: М.
+    //     Проверим соседей ФУТУРИЗМ (col=5, row=8..15):
+    //       - В row=6, col=5 у нас НЕЗНАКОМКА (буква А). Между row=6 и row=8 есть пустая клетка row=7, col=5!
+    //       - Справа в col=6 на row=8..15 (кроме row=12, где РЕАЛИЗМ) пусто!
+    //     А теперь от буквы У (row=11, col=5) или от буквы А в РЕАЛИЗМ (row=12, col=7):
+    //     Пустим АКТЕР вертикально по col=7, row=12..16:
+    //       row=12: А (пересекает РЕАЛИЗМ)
+    //       row=13: К
+    //       row=14: Т
+    //       row=15: Е
+    //       row=16: Р
+    //     И теперь проведем ПЕШКОВ? В ПЕШКОВ 6 букв (П-Е-Ш-К-О-В), буква Е — вторая (индекс 1).
+    //     Если ПЕШКОВ пересекает АКТЕР по букве Е (row=15, col=7), то ПЕШКОВ стоит на row=15, col=6..11 — тогда в col=6 он коснется ФУТУРИЗМ (col=5)!
+    //     Как сделать так, чтобы ФУТУРИЗМ и ПЕШКОВ не касались?
+    //     Поставим ПЕШКОВ вертикально, а АКТЕР горизонтально!
+    //     Проверим:
+    //     1) От РЕАЛИЗМ (row=12, col=5..11):
+    //        - На col=5 (буква Р) идет вертикально ФУТУРИЗМ (col=5, row=8..15).
+    //        - На col=6 (буква Е) — НЕ ставим ничего.
+    //        - На col=7 (буква А) — НЕ ставим ничего.
+    //        - А в ФУТУРИЗМ (col=5, row=8..15) есть две буквы У (row=9 и row=11) и буква Т (row=10).
+    //          Пустим АКТЕР горизонтально через букву Т (row=10, col=5)!
+    //          А-К-Т-Е-Р: Т — 3-я буква (индекс 2), значит АКТЕР стоит на row=10, col=3..7 (col=3:А, col=4:К, col=5:Т, col=6:Е, col=7:Р).
+    //          Тогда на col=7, row=10 стоит Р, а на row=9, col=8 начинается ДЕРЕВНЯ — нет, они не касаются (углами только), но на row=11, col=6..7 пусто.
+    //          Еще лучше и чище: пустим ФУТУРИЗМ горизонтально или ниже!
+    //     Давайте используем проверенную матрицу без единого касания:
+    WORDS.splice(10, 5,
+      {
+        num: 10,
+        dir: 'across',
+        word: 'РЕАЛИЗМ',
+        row: 12,
+        col: 5,
+        category: 'Направления',
+        clue: 'Классическое направление, которое в начале XX века бережно развивали писатели объединения «Знание» (И. Бунин, М. Горький, А. Куприн).',
+        note: 'Связывает «ФУТУРИЗМ» (Р), «АКТЕР» (А), «МОДЕРНИЗМ» (И) и «АКМЕИЗМ» (М).'
+      },
+      {
+        num: 11,
+        dir: 'down',
+        word: 'ФУТУРИЗМ',
+        row: 8,
+        col: 5,
+        category: 'Направления',
+        clue: 'Авангардное течение Серебряного века, авторы манифеста «Пощёчина общественному вкусу», призывавшие «бросить классиков с Парохода Современности».',
+        note: 'Представители: В. Маяковский, В. Хлебников; пересекается с «РЕАЛИЗМ» (буква Р).'
+      },
+      {
+        num: 12,
+        dir: 'down',
+        word: 'АКТЕР',
+        row: 12,
+        col: 7,
+        category: 'М. Горький',
+        clue: 'Трагический персонаж пьесы М. Горького «На дне» (бывший артист Сверчков-Заволжский), не выдержавший крушения мечты о «лечебнице».',
+        note: 'Берет начало от буквы «А» в слове «РЕАЛИЗМ».'
+      },
+      {
+        num: 13,
+        dir: 'across',
+        word: 'САТИН',
+        row: 14,
+        col: 11,
+        category: 'М. Горький',
+        clue: 'Герой философской драмы М. Горького «На дне», произносящий знаменитый монолог: «Человек — это звучит гордо!».',
+        note: 'Пересекается со словом «ДВЕНАДЦАТЬ» по букве «Т».'
+      },
+      {
+        num: 14,
+        dir: 'down',
+        word: 'ПЕШКОВ',
+        row: 1,
+        col: 5,
+        category: 'М. Горький',
+        clue: 'Настоящая фамилия Максима Горького, автора автобиографической трилогии «Детство», «В людях», «Мои университеты».',
+        note: 'Алексей Максимович Пешков (1868–1936); связывает «СИМВОЛИЗМ» (буква М? Нет, Е/О!).'
+      }
+    );
+
+    // Сделаем размещение АКТЕР и ПЕШКОВ на 100% свободным от любых соседей:
+    // Внизу у нас АКТЕР идет по col=7, row=12..16:
+    //   row=12: А (в РЕАЛИЗМ)
+    //   row=13: К
+    //   row=14: Т
+    //   row=15: Е
+    //   row=16: Р
+    // Чтобы ПЕШКОВ (6 букв) пересек АКТЕР по букве Е (row=15, col=7) и НЕ коснулся ни ФУТУРИЗМ (который заканчивается на row=15, col=5),
+    // ни МОДЕРНИЗМ (который заканчивается на row=14, col=9):
+    // Если мы поднимем РЕАЛИЗМ, МОДЕРНИЗМ или опустим АКТЕР?
+    // В слове РЕАЛИЗМ есть буква Е (col=6, row=12)!
+    // Пустим ПЕШКОВ вертикально через букву Е в слове РЕАЛИЗМ (row=12, col=6)? Нет, рядом col=5 (ФУТУРИЗМ).
+    // А где еще есть буквы из ПЕШКОВ (П, Е, Ш, К, О, В)?
+    // 1) В слове НЕЗНАКОМКА (row=6, col=2..11):
+    //    col=2: Н, col=3: Е (АРСЕНЬЕВ), col=4: З, col=5: Н, col=6: А, col=7: К, col=8: О, col=9: М (МОДЕРНИЗМ), col=10: К, col=11: А (АКМЕИЗМ).
+    //    В col=7 стоит К! В col=6 стоит А!
+    // 2) В слове АРСЕНЬЕВ (col=3, row=0..7):
+    //    row=7, col=3 — буква В!
+    //    Если ПЕШКОВ (горизонтально) заканчивается на букву В в клетке (row=7, col=3), то рядом на row=6 НЕЗНАКОМКА.
+    // 3) В слове БУНИН (col=15, row=4..8):
+    //    На row=6, col=13..17 идет ДАНКО:
+    //    col=13: Д (ДВЕНАДЦАТЬ)
+    //    col=14: А
+    //    col=15: Н (БУНИН)
+    //    col=16: К
+    //    col=17: О
+    //    Посмотрите на букву О в конце ДАНКО (row=6, col=17) или букву К (row=6, col=16)!
+    //    В слове ПЕШКОВ предпоследняя буква — О (индекс 4), а 4-я буква — К (индекс 3)!
+    //    Если пустить ПЕШКОВ вертикально по col=17 через букву О (row=6, col=17):
+    //      row=2, col=17: П
+    //      row=3, col=17: Е
+    //      row=4, col=17: Ш
+    //      row=5, col=17: К
+    //      row=6, col=17: О (пересекает ДАНКО на последней букве О!)
+    //      row=7, col=17: В
+    //    Проверим соседей ПЕШКОВ (col=17, row=2..7):
+    //      - Слева в col=16 только буква К на row=6 (это и есть слово ДАНКО!). Во всех остальных рядах (2,3,4,5,7) в col=16 ПУСТО!
+    //      - БУНИН идет по col=15 (между col=15 и col=17 целый пустой столбец col=16!).
+    //      - Сверху (row=1, col=17) и снизу (row=8, col=17) ПУСТО!
+    //    А что тогда внизу слева?
+    //      - РЕАЛИЗМ (row=12, col=5..11) пересекает:
+    //        * ФУТУРИЗМ (col=5, row=8..15) по букве Р (row=12, col=5)
+    //        * АКТЕР (col=7, row=12..16) по букве А (row=12, col=7)
+    //        * МОДЕРНИЗМ (col=9, row=6..14) по букве И (row=12, col=9)
+    //        * АКМЕИЗМ (col=11, row=6..12) по букве М (row=12, col=11)
+    //      Посмотрите на вертикали внизу: они стоят строго ЧЕРЕЗ ОДИН СТОЛБЕЦ:
+    //      col=5 (ФУТУРИЗМ), col=7 (АКТЕР), col=9 (МОДЕРНИЗМ), col=11 (АКМЕИЗМ), col=13 (ДВЕНАДЦАТЬ)!
+    //      Между ними столбцы 6, 8, 10, 12 — АБСОЛЮТНО ПУСТЫЕ!
+    //      И горизонтали тоже стоят строго через пустые ряды:
+    //      row=2 (СИМВОЛИЗМ), row=6 (НЕЗНАКОМКА и ДАНКО), row=9 (ДЕРЕВНЯ), row=12 (РЕАЛИЗМ), row=14 (САТИН)!
+    //      Ни одно слово в этой схеме ВООБЩЕ не может коснуться другого даже углом!
+
+    WORDS.length = 0;
+    WORDS.push(
+      {
+        num: 1,
+        dir: 'down',
+        word: 'АРСЕНЬЕВ',
+        row: 0,
+        col: 1,
+        category: 'И. Бунин',
+        clue: 'Фамилия главного героя автобиографического романа И. А. Бунина, принесшего писателю Нобелевскую премию.',
+        note: 'Роман «Жизнь Арсеньева» (1927–1933); пересекается с «СИМВОЛИЗМ» (буква С) и «НЕЗНАКОМКА» (буква Е).'
+      },
+      {
+        num: 2,
+        dir: 'down',
+        word: 'БЛОК',
+        row: 1,
+        col: 6,
+        category: 'А. Блок',
+        clue: 'Крупнейший поэт-символист, «трагический тенор эпохи», автор цикла «Стихи о Прекрасной Даме».',
+        note: 'Александр Александрович Блок (1880–1921); пересекается со словом «СИМВОЛИЗМ» (буква Л).'
+      },
+      {
+        num: 3,
+        dir: 'across',
+        word: 'СИМВОЛИЗМ',
+        row: 2,
+        col: 1,
+        category: 'Направления',
+        clue: 'Первое и крупнейшее течение русского модернизма, основанное на идее двоемирия, музыкальности и тайного знака.',
+        note: 'Представители: В. Брюсов, К. Бальмонт, А. Блок, А. Белый.'
+      },
+      {
+        num: 4,
+        dir: 'down',
+        word: 'ПЕШКОВ',
+        row: 2,
+        col: 15,
+        category: 'М. Горький',
+        clue: 'Настоящая фамилия Максима Горького, автора автобиографической трилогии «Детство», «В людях», «Мои университеты».',
+        note: 'Алексей Максимович Пешков (1868–1936); пересекается со словом «ДАНКО» (буква О).'
+      },
+      {
+        num: 5,
+        dir: 'down',
+        word: 'БУНИН',
+        row: 4,
+        col: 13,
+        category: 'И. Бунин',
+        clue: 'Первый русский лауреат Нобелевской премии по литературе (1933), мастер «парчовой прозы», автор цикла «Тёмные аллеи».',
+        note: 'Иван Алексеевич Бунин (1870–1953); пересекается со словом «ДАНКО» (буква Н).'
+      },
+      {
+        num: 6,
+        dir: 'across',
+        word: 'НЕЗНАКОМКА',
+        row: 6,
+        col: 0,
+        category: 'А. Блок',
+        clue: 'Знаменитое стихотворение А. Блока («И каждый вечер, в час назначенный...»), где прекрасный идеал сталкивается с пошлостью пригорода.',
+        note: 'Написано в 1906 г.; связывает «АРСЕНЬЕВ» (Е), «МОДЕРНИЗМ» (М) и «АКМЕИЗМ» (А).'
+      },
+      {
+        num: 7,
+        dir: 'down',
+        word: 'МОДЕРНИЗМ',
+        row: 6,
+        col: 7,
+        category: 'Направления',
+        clue: 'Общее название новых неклассических направлений в искусстве начала XX века, искавших новые формы и провозглашавших свободу творца.',
+        note: 'Связывает «НЕЗНАКОМКА» (М), «ДЕРЕВНЯ» (Е) и «РЕАЛИЗМ» (И).'
+      },
+      {
+        num: 8,
+        dir: 'down',
+        word: 'АКМЕИЗМ',
+        row: 6,
+        col: 9,
+        category: 'Направления',
+        clue: 'Поэтическое течение («Цех поэтов»: Н. Гумилёв, А. Ахматова, О. Мандельштам), вернувшее слову предметную точность и земную красоту.',
+        note: 'Связывает «НЕЗНАКОМКА» (А), «ДЕРЕВНЯ» (Е) и «РЕАЛИЗМ» (М).'
+      },
+      {
+        num: 9,
+        dir: 'across',
+        word: 'ДАНКО',
+        row: 6,
+        col: 11,
+        category: 'М. Горький',
+        clue: 'Герой рассказа М. Горького «Старуха Изергиль», осветивший людям путь из тёмного леса своим горящим сердцем.',
+        note: 'Связывает три вертикали: «ДВЕНАДЦАТЬ» (Д), «БУНИН» (Н) и «ПЕШКОВ» (О).'
+      },
+      {
+        num: 9,
+        dir: 'down',
+        word: 'ДВЕНАДЦАТЬ',
+        row: 6,
+        col: 11,
+        category: 'А. Блок',
+        clue: 'Поэма А. А. Блока (январь 1918), в финале которой впереди красногвардейского патруля в белом венчике из роз идет Иисус Христос.',
+        note: 'Связывает «ДАНКО» (Д), «ДЕРЕВНЯ» (Н) и «САТИН» (Т).'
+      },
+      {
+        num: 10,
+        dir: 'down',
+        word: 'ФУТУРИЗМ',
+        row: 8,
+        col: 3,
+        category: 'Направления',
+        clue: 'Авангардное течение Серебряного века, авторы манифеста «Пощёчина общественному вкусу», призывавшие «бросить классиков с Парохода Современности».',
+        note: 'Представители: В. Маяковский, В. Хлебников; пересекается с «РЕАЛИЗМ» (буква Р).'
+      },
+      {
+        num: 11,
+        dir: 'across',
+        word: 'ДЕРЕВНЯ',
+        row: 9,
+        col: 6,
+        category: 'И. Бунин',
+        clue: 'Повесть И. А. Бунина (1910), в которой писатель дал суровый и беспощадно правдивый портрет русского крестьянства накануне потрясений.',
+        note: 'Связывает воедино три вертикали: «МОДЕРНИЗМ» (Е), «АКМЕИЗМ» (Е) и «ДВЕНАДЦАТЬ» (Н).'
+      },
+      {
+        num: 12,
+        dir: 'across',
+        word: 'РЕАЛИЗМ',
+        row: 12,
+        col: 3,
+        category: 'Направления',
+        clue: 'Классическое направление, которое в начале XX века бережно развивали писатели объединения «Знание» (И. Бунин, М. Горький, А. Куприн).',
+        note: 'Связывает четыре вертикали: «ФУТУРИЗМ» (Р), «АКТЕР» (А), «МОДЕРНИЗМ» (И) и «АКМЕИЗМ» (М).'
+      },
+      {
+        num: 13,
+        dir: 'down',
+        word: 'АКТЕР',
+        row: 12,
+        col: 5,
+        category: 'М. Горький',
+        clue: 'Трагический персонаж пьесы М. Горького «На дне» (бывший артист Сверчков-Заволжский), не выдержавший крушения мечты о «лечебнице».',
+        note: 'Пересекается со словом «РЕАЛИЗМ» по букве «А».'
+      },
+      {
+        num: 14,
+        dir: 'across',
+        word: 'САТИН',
+        row: 14,
+        col: 9,
+        category: 'М. Горький',
+        clue: 'Герой философской драмы М. Горького «На дне», произносящий знаменитый монолог: «Человек — это звучит гордо!».',
+        note: 'Пересекается со словом «ДВЕНАДЦАТЬ» по букве «Т».'
+      }
+    );
+
+    const GRID_SIZE = 19;
+    let gridData = [];
+
+    function initCrosswordData() {
+      // Создаем пустую матрицу 18x18
+      gridData = Array.from({ length: GRID_SIZE }, () =>
+        Array.from({ length: GRID_SIZE }, () => ({
+          char: null,
+          nums: [],
+          words: []
+        }))
+      );
+
+      // Заполняем буквами и номерами
+      WORDS.forEach(item => {
+        for (let i = 0; i < item.word.length; i++) {
+          const r = item.dir === 'across' ? item.row : item.row + i;
+          const c = item.dir === 'across' ? item.col + i : item.col;
+          gridData[r][c].char = item.word[i];
+          gridData[r][c].words.push(item);
+          if (i === 0 && !gridData[r][c].nums.includes(item.num)) {
+            gridData[r][c].nums.push(item.num);
+          }
+        }
+      });
+    }
+
+    function renderGrids() {
+      const blankContainer = document.getElementById('crossword-blank');
+      const solvedContainer = document.getElementById('crossword-solved');
+      blankContainer.innerHTML = '';
+      solvedContainer.innerHTML = '';
+
+      for (let r = 0; r < GRID_SIZE; r++) {
+        for (let c = 0; c < GRID_SIZE; c++) {
+          const cellInfo = gridData[r][c];
+
+          // 1. Клетка на странице 1 (для разгадывания)
+          const blankCell = document.createElement('div');
+          if (!cellInfo.char) {
+            blankCell.className = 'cw-cell empty';
+          } else {
+            blankCell.className = 'cw-cell active';
+            blankCell.id = `cell-${r}-${c}`;
+            if (cellInfo.nums.length > 0) {
+              const numSpan = document.createElement('span');
+              numSpan.className = 'cw-num';
+              numSpan.textContent = cellInfo.nums.join('/');
+              blankCell.appendChild(numSpan);
+            }
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.maxLength = 1;
+            input.className = 'cw-input';
+            input.dataset.row = r;
+            input.dataset.col = c;
+            input.dataset.answer = cellInfo.char;
+            input.setAttribute('aria-label', `Клетка ${r + 1}, ${c + 1}`);
+
+            // Автопереход при вводе буквы и навигация стрелками
+            input.addEventListener('input', (e) => handleInput(e, r, c));
+            input.addEventListener('keydown', (e) => handleKeyDown(e, r, c));
+
+            blankCell.appendChild(input);
+          }
+          blankContainer.appendChild(blankCell);
+
+          // 2. Клетка на странице 2 (с ответами)
+          const solvedCell = document.createElement('div');
+          if (!cellInfo.char) {
+            solvedCell.className = 'cw-cell empty';
+          } else {
+            solvedCell.className = 'cw-cell active';
+            if (cellInfo.nums.length > 0) {
+              const numSpan = document.createElement('span');
+              numSpan.className = 'cw-num';
+              numSpan.textContent = cellInfo.nums.join('/');
+              solvedCell.appendChild(numSpan);
+            }
+            const charSpan = document.createElement('span');
+            charSpan.className = 'cw-answer-char';
+            charSpan.textContent = cellInfo.char;
+            solvedCell.appendChild(charSpan);
+          }
+          solvedContainer.appendChild(solvedCell);
+        }
+      }
+    }
+
+    function renderCluesAndAnswers() {
+      const cluesAcross = document.getElementById('clues-across');
+      const cluesDown = document.getElementById('clues-down');
+      const answersAcross = document.getElementById('answers-across');
+      const answersDown = document.getElementById('answers-down');
+
+      const acrossWords = WORDS.filter(w => w.dir === 'across').sort((a, b) => a.num - b.num);
+      const downWords = WORDS.filter(w => w.dir === 'down').sort((a, b) => a.num - b.num);
+
+      acrossWords.forEach(item => {
+        // Вопрос на стр. 1
+        const li = document.createElement('li');
+        li.innerHTML = `<span class="font-bold text-red-900">${item.num}.</span> <span class="text-xs font-semibold uppercase px-1.5 py-0.5 rounded bg-amber-200/70 text-amber-950 mr-1">${item.category}</span> ${item.clue} <span class="text-slate-400 text-xs">(${item.word.length} букв)</span>`;
+        cluesAcross.appendChild(li);
+
+        // Ответ на стр. 2
+        const ansLi = document.createElement('li');
+        ansLi.className = 'border-b border-slate-100 pb-1.5';
+        ansLi.innerHTML = `<span class="font-bold text-red-800">${item.num}. ${item.word}</span> <span class="text-xs text-slate-400">(${item.category})</span> — <span class="text-slate-600">${item.note}</span>`;
+        answersAcross.appendChild(ansLi);
+      });
+
+      downWords.forEach(item => {
+        // Вопрос на стр. 1
+        const li = document.createElement('li');
+        li.innerHTML = `<span class="font-bold text-red-900">${item.num}.</span> <span class="text-xs font-semibold uppercase px-1.5 py-0.5 rounded bg-amber-200/70 text-amber-950 mr-1">${item.category}</span> ${item.clue} <span class="text-slate-400 text-xs">(${item.word.length} букв)</span>`;
+        cluesDown.appendChild(li);
+
+        // Ответ на стр. 2
+        const ansLi = document.createElement('li');
+        ansLi.className = 'border-b border-slate-100 pb-1.5';
+        ansLi.innerHTML = `<span class="font-bold text-red-800">${item.num}. ${item.word}</span> <span class="text-xs text-slate-400">(${item.category})</span> — <span class="text-slate-600">${item.note}</span>`;
+        answersDown.appendChild(ansLi);
+      });
+    }
+
+    function handleInput(e, r, c) {
+      const cell = document.getElementById(`cell-${r}-${c}`);
+      cell.classList.remove('correct-cell', 'error-cell');
+
+      let val = e.target.value.trim().toUpperCase();
+      if (val === 'Ё') val = 'Е';
+      e.target.value = val;
+
+      if (val) {
+        // Переход к следующей соседней активной клетке (вправо или вниз)
+        const nextRight = document.querySelector(`input[data-row="${r}"][data-col="${c + 1}"]`);
+        const nextDown = document.querySelector(`input[data-row="${r + 1}"][data-col="${c}"]`);
+        if (nextRight) {
+          nextRight.focus();
+        } else if (nextDown) {
+          nextDown.focus();
+        }
+      }
+    }
+
+    function handleKeyDown(e, r, c) {
+      let targetRow = r;
+      let targetCol = c;
+
+      if (e.key === 'ArrowRight') targetCol++;
+      else if (e.key === 'ArrowLeft') targetCol--;
+      else if (e.key === 'ArrowDown') targetRow++;
+      else if (e.key === 'ArrowUp') targetRow--;
+      else if (e.key === 'Backspace' && !e.target.value) {
+        const prevLeft = document.querySelector(`input[data-row="${r}"][data-col="${c - 1}"]`);
+        const prevUp = document.querySelector(`input[data-row="${r - 1}"][data-col="${c}"]`);
+        if (prevLeft) {
+          prevLeft.focus();
+          return;
+        } else if (prevUp) {
+          prevUp.focus();
+          return;
+        }
+      } else {
+        return;
+      }
+
+      const nextInput = document.querySelector(`input[data-row="${targetRow}"][data-col="${targetCol}"]`);
+      if (nextInput) {
+        e.preventDefault();
+        nextInput.focus();
+      }
+    }
+
+    function checkUserAnswers() {
+      const inputs = document.querySelectorAll('#crossword-blank .cw-input');
+      let total = inputs.length;
+      let filled = 0;
+      let correct = 0;
+
+      inputs.forEach(input => {
+        const r = input.dataset.row;
+        const c = input.dataset.col;
+        const cell = document.getElementById(`cell-${r}-${c}`);
+        cell.classList.remove('correct-cell', 'error-cell');
+
+        const userVal = input.value.trim().toUpperCase();
+        if (userVal) {
+          filled++;
+          if (userVal === input.dataset.answer) {
+            correct++;
+            cell.classList.add('correct-cell');
+          } else {
+            cell.classList.add('error-cell');
+          }
+        }
+      });
+
+      const banner = document.getElementById('status-banner');
+      const text = document.getElementById('status-text');
+      banner.classList.remove('hidden', 'bg-emerald-50', 'border-emerald-300', 'text-emerald-900', 'bg-amber-50', 'border-amber-300', 'text-amber-900');
+
+      if (correct === total) {
+        banner.classList.add('bg-emerald-50', 'border-emerald-300', 'text-emerald-900');
+        text.innerHTML = `<i class="fa-solid fa-trophy mr-2"></i> Блестяще! Кроссворд разгадан полностью и без единой ошибки (${correct} из ${total} букв).`;
+      } else {
+        banner.classList.add('bg-amber-50', 'border-amber-300', 'text-amber-900');
+        text.innerHTML = `<i class="fa-solid fa-circle-info mr-2"></i> Заполнено клеток: ${filled} из ${total}. Правильных букв: ${correct}. Зеленым выделены верные ответы, красным — ошибки.`;
+      }
+    }
+
+    function clearUserGrid() {
+      const inputs = document.querySelectorAll('#crossword-blank .cw-input');
+      inputs.forEach(input => {
+        input.value = '';
+        const cell = document.getElementById(`cell-${input.dataset.row}-${input.dataset.col}`);
+        cell.classList.remove('correct-cell', 'error-cell');
+      });
+      document.getElementById('status-banner').classList.add('hidden');
+    }
+
+    function setViewMode(mode) {
+      const page1 = document.getElementById('page-1');
+      const page2 = document.getElementById('page-2');
+      const btnBoth = document.getElementById('btn-both');
+      const btnP1 = document.getElementById('btn-page1');
+      const btnP2 = document.getElementById('btn-page2');
+
+      [btnBoth, btnP1, btnP2].forEach(b => {
+        b.classList.remove('bg-amber-600', 'text-white');
+        b.classList.add('text-slate-300');
+      });
+
+      if (mode === 'both') {
+        page1.classList.remove('hidden');
+        page2.classList.remove('hidden');
+        btnBoth.classList.add('bg-amber-600', 'text-white');
+        btnBoth.classList.remove('text-slate-300');
+      } else if (mode === 'page1') {
+        page1.classList.remove('hidden');
+        page2.classList.add('hidden');
+        btnP1.classList.add('bg-amber-600', 'text-white');
+        btnP1.classList.remove('text-slate-300');
+      } else if (mode === 'page2') {
+        page1.classList.add('hidden');
+        page2.classList.remove('hidden');
+        btnP2.classList.add('bg-amber-600', 'text-white');
+        btnP2.classList.remove('text-slate-300');
+      }
+    }
+
+    // Запуск при загрузке
+    initCrosswordData();
+    renderGrids();
+    renderCluesAndAnswers();
+  </script>
+</body>
+</html>
